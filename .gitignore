@@ -3,9 +3,11 @@ dist
 *.egg-info
 
 # Generated files
+.coverage
 .tox/*
 .pytest_cache/*
-docs/_build
+docs/_build/*
+htmlcov/*
 
 # Compiled Files
 *__pycache__

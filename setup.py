@@ -9,7 +9,8 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 
 tests_require = [
-    'pytest>=3.0.0',
+    'pytest>=4.0.1',
+    'pytest-cov>=2.6.0'
 ]
 
 install_requires = [
