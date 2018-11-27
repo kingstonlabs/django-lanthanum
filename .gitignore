@@ -1,0 +1,17 @@
+# Distribution
+dist
+*.egg-info
+
+# Built Docs
+docs/_build
+
+# Compiled Files
+*__pycache__
+*.pyc
+*.*~
+
+# IDEs
+.project
+.pydevproject
+*.sublime-project
+*.sublime-workspace

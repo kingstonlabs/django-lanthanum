@@ -1,0 +1,4 @@
+include LICENSE
+include README.md
+recursive-include lanthanum/templates *
+recursive-include docs *
