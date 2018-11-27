@@ -2,7 +2,9 @@
 dist
 *.egg-info
 
-# Built Docs
+# Generated files
+.tox/*
+.pytest_cache/*
 docs/_build
 
 # Compiled Files

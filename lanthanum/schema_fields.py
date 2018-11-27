@@ -74,7 +74,7 @@ class CharField(Field):
                     'value': '{{item.value}}'
                 }
             ]
-            # schema['enum'] = [value for (value, label) in self._choices]
+            schema['enum'] = [value for (value, label) in self._choices]
         if self._required and self._min_length is None:
             schema['minLength'] = 1
         if self._min_length:

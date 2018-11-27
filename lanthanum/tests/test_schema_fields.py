@@ -353,7 +353,12 @@ def pet_list_field(dog_field, cat_field, pet_list_field_options):
 
 class TestOneOfArrayField:
     def test_schema(self, pet_list_field, dog_schema, cat_schema):
-        assert pet_list_field.schema == {
+        labeled_dog_schema = dog_schema.copy()
+        labeled_dog_schema['title'] = 'Dog'
+        labeled_cat_schema = cat_schema.copy()
+        labeled_cat_schema['title'] = 'Cat'
+
+        expected_schema = {
             "type": "array",
             "format": "tabs",
             "title": "Pets",
@@ -363,7 +368,7 @@ class TestOneOfArrayField:
                 "oneOf": [
                     {
                         "type": "object",
-                        "title": None,
+                        "title": "Dog",
                         "properties": {
                             "schemaType": {
                                 "title": "Schema Type",
@@ -372,14 +377,14 @@ class TestOneOfArrayField:
                                 "default": "dog",
                                 "template": "dog"
                             },
-                            "data": dog_schema
+                            "data": labeled_dog_schema
                         },
                         "defaultProperties": ["data", "schemaType"],
                         "required": ["data", "schemaType"]
                     },
                     {
                         "type": "object",
-                        "title": None,
+                        "title": "Cat",
                         "properties": {
                             "schemaType": {
                                 "title": "Schema Type",
@@ -388,7 +393,7 @@ class TestOneOfArrayField:
                                 "default": "cat",
                                 "template": "cat"
                             },
-                            "data": cat_schema
+                            "data": labeled_cat_schema
                         },
                         "defaultProperties": ["data", "schemaType"],
                         "required": ["data", "schemaType"]
@@ -398,6 +403,7 @@ class TestOneOfArrayField:
             "minItems": 2,
             "maxItems": 10
         }
+        assert pet_list_field.schema == expected_schema
 
     def test_load_single_item(self, pet_list_field):
         items = [
