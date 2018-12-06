@@ -30,6 +30,11 @@ def dog_field():
     class DogField(ObjectField):
         name = CharField(required=True)
         breed = CharField()
+
+        @property
+        def short_name(self):
+            return self.name[:3]
+
     return DogField
 
 
@@ -163,6 +168,10 @@ def generic_animal_field():
 
         class Meta:
             abstract = True
+
+        @property
+        def loud_name(self):
+            return self.name.upper()
 
     return GenericAnimalField
 

@@ -231,6 +231,14 @@ class TestObjectField:
         assert loaded_data.favourite_dog.name == scooby_doo['name']
         assert loaded_data.favourite_dog.breed == scooby_doo['breed']
 
+    def test_instances_copy_methods(self, dog_field, scooby_doo):
+        """
+        Methods declared on the field should be available to the instance
+        """
+        loaded_data = dog_field().Meta.python_type(scooby_doo)
+        assert loaded_data.name == scooby_doo['name']
+        assert loaded_data.short_name == scooby_doo['name'][:3]
+
 
 class TestSubClassedObjectField:
     def test_schema(self, parrot_field, parrot_schema):
@@ -244,6 +252,14 @@ class TestSubClassedObjectField:
         loaded_data = parrot_field().Meta.python_type(polly)
         assert loaded_data.name == polly['name']
         assert loaded_data.talks == polly['talks']
+
+    def test_instances_copy_parent_methods(self, parrot_field):
+        """
+        Methods declared on the parent field should be copied to the instance
+        """
+        polly = {'name': 'Polly', 'talks': True}
+        loaded_data = parrot_field().Meta.python_type(polly)
+        assert loaded_data.loud_name == polly['name'].upper()
 
 
 class TestArrayField:

@@ -245,26 +245,33 @@ class ObjectField(Field):
         new_class = super().__new__(cls, *args, **kwargs)
 
         sub_fields = {}
+        python_type_dict = {}
         for base in reversed(cls.mro()):
-            base_fields = {
+            sub_fields.update({
                 name: field
                 for name, field in base.__dict__.items()
                 if isinstance(field, Field)
-            }
-            sub_fields.update(base_fields)
+            })
+            python_type_dict.update({
+                name: prop
+                for name, prop in base.__dict__.items()
+                if not name.startswith("__")
+            })
 
         new_class._sub_fields = sub_fields
         new_class._required_field_names = [
             name for name, field in new_class._sub_fields.items()
             if field._required
         ]
+
+        python_type_dict.update({
+            key: field.Meta.python_type
+            for key, field in new_class._sub_fields.items()
+        })
         python_type = type(
             "{}Type".format(cls.__name__.rstrip("Field")),
             (DynamicObject,),
-            {
-                key: field.Meta.python_type
-                for key, field in new_class._sub_fields.items()
-            }
+            python_type_dict
         )
 
         # Inherit meta attributes from base classes
