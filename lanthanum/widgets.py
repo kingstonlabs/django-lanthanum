@@ -11,9 +11,9 @@ class JSONEditorWidget(JSONEditorWidget):
 
     def render(self, name, value, attrs=None, renderer=None):
         """
-        Fix the JSON Editor widget by doing a standard json dump for dict data.
+        Fix the JSON Editor widget by doing a standard json dump for dict data
 
-        This will not attempt to convert booleans to ints.
+        This will not convert booleans to ints like the standard JSON Editor.
         """
         if callable(self._schema):
             schema = self._schema(self)

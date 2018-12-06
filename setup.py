@@ -10,13 +10,15 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 tests_require = [
     'pytest>=4.0.1',
-    'pytest-cov>=2.6.0'
+    'pytest-cov>=2.6.0',
+    'pytest-django>=3.4.4'
 ]
 
 install_requires = [
     'django>=2.0',
     'django-admin-json-editor>=0.1.5',
-    'jsonschema>=2.6.0'
+    'jsonschema>=2.6.0',
+    'psycopg2==2.7.5'
 ]
 
 

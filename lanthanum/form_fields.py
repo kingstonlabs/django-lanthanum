@@ -9,6 +9,6 @@ def to_schema_field(field_class):
             """
             if value is None:
                 return value
-            return super().prepare_value(value.data)
+            return super().prepare_value(getattr(value, '_data', value))
 
     return DynamicJSONField

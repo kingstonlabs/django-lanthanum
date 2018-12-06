@@ -1,60 +1,128 @@
-import copy
+from decimal import Decimal
 import logging
 
-from django.conf import settings
-from jsonschema import validate
+from .field_types import DynamicArray, DynamicObject, TypedArray
+from .schema_registry import schema_registry
+from .utils import field_to_schema_name
 
 
 logger = logging.getLogger(__name__)
 
 
 class Field(object):
+    """
+    Basic JSON schema field definition
+    """
     class Meta:
-        data_type = 'string'
-        data_format = 'text'
+        python_type = str
+        schema_type = 'string'
+        schema_format = 'text'
+        schema_name = 'field'
+        abstract = True
+
+        @classmethod
+        def get_default_label(cls):
+            return None
+
+    def __new__(cls, *args, **kwargs):
+        """
+        Configure the new field
+        """
+        new_class = super().__new__(cls)
+
+        # Inherit meta attributes from base classes
+        merged_meta_dict = {}
+        for base in reversed(cls.mro()):
+            if hasattr(base, 'Meta'):
+                merged_meta_dict.update(base.Meta.__dict__)
+        # Abstract should always default to False unless explicitly specified
+        # Schema name should not be inherited
+        merged_meta_dict.update({
+            'abstract': getattr(new_class.Meta, 'abstract', False),
+            'schema_name': (
+                getattr(new_class.Meta, 'schema_name', None) or
+                field_to_schema_name(new_class.__class__.__name__)
+            )
+        })
+
+        new_class.Meta = type('Meta', (), merged_meta_dict)
+
+        key = new_class.Meta.schema_name
+
+        is_abstract = getattr(cls.Meta, 'abstract', False)
+        if not is_abstract and key not in schema_registry:
+            schema_registry[key] = new_class
+        return new_class
 
     def __init__(self, **kwargs):
-        self._label = (
-            kwargs.get('label') or getattr(self.Meta, 'label', None)
-        )
-        self._default = (
-            kwargs.get('default') or getattr(self.Meta, 'default', None)
-        )
+        """
+        Configure options: label, default and required
+        """
+        self._label = kwargs.get('label', self.Meta.get_default_label())
+        self._default = kwargs.get('default')
         self._required = kwargs.get('required', False)
-        self.data = None
-
-    def __str__(self):
-        return format(self.data)
-
-    def __bool__(self):
-        return bool(self.data)
 
     @property
     def schema(self):
+        """
+        The JSON Schema for basic fields
+        """
         schema = {}
-        if self.Meta.data_type is not None:
-            schema['type'] = self.Meta.data_type
-        if self.Meta.data_format is not None:
-            schema['format'] = self.Meta.data_format
+        if self.Meta.schema_type is not None:
+            schema['type'] = self.Meta.schema_type
+        if self.Meta.schema_format is not None:
+            schema['format'] = self.Meta.schema_format
         if self._label is not None:
             schema['title'] = self._label
         if self._default is not None:
             schema['default'] = self._default
         return schema
 
-    def load_data(self, data):
-        self.data = data
+    @property
+    def typed_schema(self):
+        """
+        Add data typing to the schema by wrapping it with metadata
 
-    def validate(self):
-        validate(self.data, self.schema)
+        This is useful for validating OneOf Schemas because it includes the
+        schema type as a constant.
+        """
+        schema = {
+            'type': 'object',
+            'properties': {
+                'schemaName': {
+                    'title': 'Schema Name',
+                    'const': self.Meta.schema_name,
+                    'type': 'string',
+                    'default': self.Meta.schema_name,
+                    # JSON Editor isn't very good at making a const field, so
+                    # set to a static template
+                    'template': self.Meta.schema_name
+                },
+                'data': self.schema
+            },
+            "defaultProperties": ["data", "schemaName"],
+            "required": ['data', 'schemaName']
+        }
+        if self._label is not None:
+            schema['title'] = self._label
+        return schema
 
 
 class CharField(Field):
+    """
+    JSON Schema Field for a simple string input
+    """
     class Meta:
-        data_type = 'string'
-        data_format = 'text'
+        python_type = str
+        schema_type = 'string'
+        schema_format = 'text'
+        schema_name = 'charfield'
+        abstract = False
 
     def __init__(self, **kwargs):
+        """
+        Configure with choices, min_length and max_length options
+        """
         super().__init__(**kwargs)
         self._choices = kwargs.pop("choices", None)
         self._min_length = kwargs.pop("min_length", None)
@@ -62,6 +130,9 @@ class CharField(Field):
 
     @property
     def schema(self):
+        """
+        CharField schema including choices and min / max length
+        """
         schema = super().schema
         if self._choices:
             schema['enumSource'] = [
@@ -83,192 +154,280 @@ class CharField(Field):
             schema['maxLength'] = self._max_length
         return schema
 
-    def load_data(self, data):
-        self.data = data or ""
-
 
 class TextField(Field):
+    """
+    JSON Schema field for larger text inputs
+    """
     class Meta:
-        data_type = 'string'
-        data_format = 'textarea'
+        python_type = str
+        schema_type = 'string'
+        schema_format = 'textarea'
+        schema_name = 'textfield'
+        abstract = False
 
     @property
     def schema(self):
+        """
+        Just set min length for required fields
+        """
         schema = super().schema
         if self._required:
             schema['minLength'] = 1
         return schema
-
-    def load_data(self, data):
-        self.data = data or ""
 
 
 class BooleanField(Field):
+    """
+    JSON Schema for boolean inputs
+    """
     class Meta:
-        data_type = 'boolean'
-        data_format = 'checkbox'
-
-    def load_data(self, data):
-        if data in ["true", "True"]:
-            data = True
-        elif data in ["false", "False"]:
-            data = False
-
-        self.data = data
+        python_type = bool
+        schema_type = 'boolean'
+        schema_format = 'checkbox'
+        schema_name = 'booleanfield'
+        abstract = False
 
 
 class IntegerField(Field):
+    """
+    JSON Schema for integer inputs
+    """
     class Meta:
-        data_type = 'integer'
-        data_format = 'number'
+        python_type = int
+        schema_type = 'integer'
+        schema_format = 'number'
+        schema_name = 'integerfield'
+        abstract = False
 
 
 class DecimalField(Field):
+    """
+    JSON Schema for decimal inputs
+    """
     class Meta:
-        data_type = 'number'
-        data_format = 'number'
+        python_type = Decimal
+        schema_type = 'decimal'
+        schema_format = 'number'
+        schema_name = 'numberfield'
+        abstract = False
 
 
 class ObjectField(Field):
+    """
+    JSON Schema for object inputs
+    """
     class Meta:
-        data_type = 'object'
-        data_format = None
+        python_type = DynamicObject
+        schema_type = 'object'
+        schema_format = None
+        schema_name = None
+        abstract = True
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Make a copy of each field for this instance, so we can load data
-        # into them without affecting other instances
-        self._sub_fields = {}
-        for name, field in self.__class__.__dict__.items():
-            if isinstance(field, Field):
-                instance_field = copy.deepcopy(field)
-                setattr(self, name, instance_field)
-                self._sub_fields[name] = instance_field
+        @classmethod
+        def get_default_label(cls):
+            return cls.schema_name.replace("_", " ").title()
 
-    def _get_required(self):
-        sub_fields = self._sub_fields
-        return [
-            field_name for field_name, field in sub_fields.items()
+    def __new__(cls, *args, **kwargs):
+        """
+        Configure the new field with the sub fields specified
+
+        This dynamically generates a new python type to fit the JSON Schema.
+        """
+        schema_name = (
+            cls.Meta.schema_name or
+            field_to_schema_name(cls.__name__)
+        )
+
+        if schema_name in schema_registry:
+            return schema_registry[schema_name]
+
+        new_class = super().__new__(cls, *args, **kwargs)
+
+        sub_fields = {}
+        for base in reversed(cls.mro()):
+            base_fields = {
+                name: field
+                for name, field in base.__dict__.items()
+                if isinstance(field, Field)
+            }
+            sub_fields.update(base_fields)
+
+        new_class._sub_fields = sub_fields
+        new_class._required_field_names = [
+            name for name, field in new_class._sub_fields.items()
             if field._required
         ]
+        python_type = type(
+            "{}Type".format(cls.__name__.rstrip("Field")),
+            (DynamicObject,),
+            {
+                key: field.Meta.python_type
+                for key, field in new_class._sub_fields.items()
+            }
+        )
+
+        # Inherit meta attributes from base classes
+        merged_meta_dict = {}
+        for base in reversed(cls.mro()):
+            if hasattr(base, 'Meta'):
+                merged_meta_dict.update(base.Meta.__dict__)
+        merged_meta_dict.update({
+            'python_type': python_type,
+            'schema_name': schema_name,
+            'schema_type': 'object',
+            'schema_format': None,
+            'abstract': False
+        })
+
+        new_class.Meta = type('Meta', (), merged_meta_dict)
+
+        schema_registry[schema_name] = new_class
+        return new_class
 
     @property
     def schema(self):
+        """
+        Build the schema by iterating over each of the sub fields.
+        """
         schema = super().schema
         schema['properties'] = {}
         for name, sub_field in self._sub_fields.items():
-            sub_field._label = name.title().replace("_", " ")
-            schema['properties'][name] = sub_field.schema
-        schema['required'] = self._get_required()
+            sub_field_schema = sub_field.schema.copy()
+            sub_field_schema['title'] = name.title().replace("_", " ")
+            schema['properties'][name] = sub_field_schema
+        schema['required'] = self._required_field_names
         return schema
 
-    def load_data(self, data):
-        if data is None:
-            self.data = None
-            return
-        if not isinstance(data, dict):
-            logger.warning(
-                "ObjectField data was not a dictionary - it was `{}`".format(
-                    data
-                )
-            )
-            self.data = data
-            return
-        self.data = {}
-        for name, field in self._sub_fields.items():
-            field.load_data(data=data.get(name))
-            self.data[name] = field.data
 
-
-class FilePathField(Field):
+class ArrayField(Field):
+    """
+    JSON Schema for simple array inputs
+    """
     class Meta:
-        data_type = 'string'
-        data_format = 'text'
+        python_type = TypedArray
+        schema_type = 'array'
+        schema_format = 'table'
+        schema_name = None
+        abstract = True
 
-    def __init__(self, *args, **kwargs):
-        self._media_type = kwargs.get('media_type')
-        super().__init__(**kwargs)
+        @classmethod
+        def get_default_label(cls):
+            simple_label = cls.schema_name.rstrip("_array")
+            return "{} List".format(simple_label.replace("_", " ").title())
+
+    def __new__(cls, *args, **kwargs):
+        """
+        Configure the new field with the base field specified
+
+        This dynamically generates a python array type to contain each item.
+        """
+        base_field = kwargs.pop('base_field', Field)
+
+        schema_name = cls.Meta.schema_name or "{}_array".format(
+            base_field.Meta.schema_name
+        )
+        if schema_name in schema_registry:
+            return schema_registry[schema_name]
+
+        new_class = super().__new__(cls, *args, **kwargs)
+        new_class._base_field = base_field
+
+        array_type_meta = type(
+            'Meta',
+            (),
+            {'schema_type': 'array', 'base_type': base_field.Meta.python_type}
+        )
+        python_type = type(
+            "{}ArrayType".format(
+                base_field.__class__.__name__.rstrip("Field")
+            ),
+            (TypedArray,),
+            {'Meta': array_type_meta}
+        )
+
+        # Inherit meta attributes from base classes
+        merged_meta_dict = {}
+        for base in reversed(cls.mro()):
+            if hasattr(base, 'Meta'):
+                merged_meta_dict.update(base.Meta.__dict__)
+        merged_meta_dict.update({
+            'python_type': python_type,
+            'schema_name': schema_name,
+            'schema_type': 'array',
+            'schema_format': 'table',
+            'abstract': False
+        })
+        new_class.Meta = type('Meta', (), merged_meta_dict)
+
+        schema_registry[schema_name] = new_class
+        return new_class
 
     @property
     def schema(self):
+        """
+        Build the schema by iterating over each of the sub fields.
+        """
         schema = super().schema
-        if self._required:
-            schema['minLength'] = 1
-
-        media_link = {
-            "href": "{}{{{{self}}}}".format(settings.MEDIA_URL)
-        }
-        if self._media_type is not None:
-            media_link['mediaType'] = self._media_type
-
-        schema["links"] = [media_link]
-
+        schema['items'] = self._base_field.schema
         return schema
 
-    def load_data(self, data):
-        self.data = data or ""
 
-
-class TypedField(Field):
+class DynamicArrayField(Field):
     """
-    Like a field, but includes meta data about what schema type it is.
+    An array of items that may be of different types
 
-    This is useful for validating OneOf Schemas because it includes the schema
-    type as a constant.
+    This stores the typed schema for each item so that it can be processed
+    properly when converted into python.
     """
-    def __init__(self, field, schema_type):
-        self._field = copy.deepcopy(field)
-        if self._field._label is None:
-            self._field._label = schema_type.title().replace("_", " ")
-        self.schema_type = schema_type
-
-    def __getattr__(self, name):
-        if name.startswith("__"):
-            # Don't change special methods
-            return super().__getattr__(name)
-        else:
-            return getattr(self._field, name)
-
-    def __str__(self):
-        return str(self._field)
-
-    @property
-    def schema(self):
-        schema = {
-            'type': 'object',
-            'title': self._field._label,
-            'properties': {
-                'schemaType': {
-                    'title': 'Schema Type',
-                    'const': self.schema_type,
-                    'type': 'string',
-                    'default': self.schema_type,
-                    # JSON Editor isn't very good at making a const field, so
-                    # set to a static template
-                    'template': self.schema_type
-                },
-                'data': self._field.schema
-            },
-            "defaultProperties": ["data", "schemaType"],
-            "required": ['data', 'schemaType']
-        }
-        return schema
-
-    def load_data(self, data):
-        self.data = data
-        self.data['schemaType'] = self.schema_type
-        self._field.load_data(data.get("data"))
-
-
-class OneOfArray(list):
-    def __init__(self, **fields):
-        super().__init__()
-
-
-class OneOfArrayField(Field, OneOfArray):
     class Meta:
-        data_type = 'array'
-        data_format = 'tabs'
+        python_type = DynamicArray
+        schema_type = 'array'
+        schema_format = 'tabs'
+        schema_name = None
+        abstract = False
+
+        @classmethod
+        def get_default_label(cls):
+            return cls.schema_name.replace("_", " ").title()
+
+    def __new__(cls, *args, **kwargs):
+        """
+        Configure the new field with the allowed fields specified
+
+        This generates a dynamic python array type to contain each item.
+        """
+        allowed_fields = kwargs.pop('allowed_fields')
+        schema_name = (
+            kwargs.pop('schema_name', None) or
+            "one_of_{}".format("_or_".join([
+                field.Meta.schema_name
+                for field in allowed_fields
+            ]))
+        )
+
+        if schema_name in schema_registry:
+            return schema_registry[schema_name]
+
+        new_class = super().__new__(cls, *args, **kwargs)
+        new_class._allowed_fields = allowed_fields
+
+        # Inherit meta attributes from base classes
+        merged_meta_dict = {}
+        for base in reversed(cls.mro()):
+            if hasattr(base, 'Meta'):
+                merged_meta_dict.update(base.Meta.__dict__)
+        merged_meta_dict.update({
+                'python_type': cls.Meta.python_type,
+                'schema_name': schema_name,
+                'schema_type': 'array',
+                'schema_format': 'tabs',
+                'abstract': False
+            })
+        new_class.Meta = type('Meta', (), merged_meta_dict)
+
+        schema_registry[schema_name] = new_class
+        return new_class
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -277,13 +436,6 @@ class OneOfArrayField(Field, OneOfArray):
         self._min_items = kwargs.get("min_items")
         self._item_label = kwargs.get("item_label", "Item")
 
-        self._allowed_fields = {}
-        for name, field in self.__class__.__dict__.items():
-            if isinstance(field, Field):
-                self._allowed_fields[name] = TypedField(
-                    field=field, schema_type=name
-                )
-
     @property
     def schema(self):
         schema = super().schema
@@ -291,10 +443,7 @@ class OneOfArrayField(Field, OneOfArray):
         schema['items'] = {
             'title': self._item_label,
             'headerTemplate': "{} {{{{i1}}}}.".format(self._item_label),
-            'oneOf': [
-                field.schema
-                for field in self._allowed_fields.values()
-            ]
+            'oneOf': [field.typed_schema for field in self._allowed_fields]
         }
 
         if self._unique_items is not None:
@@ -304,17 +453,3 @@ class OneOfArrayField(Field, OneOfArray):
         if self._max_items is not None:
             schema['maxItems'] = self._max_items
         return schema
-
-    def load_data(self, data):
-        self.data = data
-
-        del self[:]
-
-        for data_item in data:
-            schema_type = data_item.get('schemaType')
-            base_field = self._allowed_fields.get(schema_type)
-            if base_field is None:
-                continue
-            field = copy.deepcopy(base_field)
-            field.load_data(data_item)
-            self.append(field)

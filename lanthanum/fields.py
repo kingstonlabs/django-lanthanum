@@ -1,5 +1,3 @@
-import copy
-
 from django.contrib.postgres.fields import JSONField
 from django.contrib.postgres.forms import JSONField as JSONFormField
 
@@ -12,6 +10,7 @@ class DynamicField(JSONField):
 
     def __init__(self, *args, **kwargs):
         self.schema_field = kwargs.pop("schema_field")
+        self.output_type = self.schema_field.Meta.python_type
         super().__init__(*args, **kwargs)
 
     def deconstruct(self):
@@ -22,22 +21,21 @@ class DynamicField(JSONField):
 
     def from_db_value(self, value, expression, connection):
         """
-        Convert the data coming out of the database into a schema field object.
+        Convert the data coming out of the database into the correct type.
         """
         if value is None:
             return value
 
-        schema_field = copy.deepcopy(self.schema_field)
-        schema_field.load_data(value)
+        parsed_value = self.output_type(value)
 
-        return schema_field
+        return parsed_value
 
     def value_to_string(self, obj):
         """
         Convert object to data for data dumps.
         """
         value = self.value_from_object(obj)
-        return value.data
+        return value._data
 
     def formfield(self, **kwargs):
         """
