@@ -1,0 +1,4 @@
+container:
+  image: themattrix/tox-base
+check_task:
+  script: tox
