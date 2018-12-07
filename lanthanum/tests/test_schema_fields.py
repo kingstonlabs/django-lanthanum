@@ -10,6 +10,7 @@ from ..schema_fields import (
     IntegerField,
     TextField
 )
+from .utils import assert_dict_equal
 
 
 class TestField:
@@ -22,12 +23,15 @@ class TestField:
         default = "Thing"
         required = True
         field = Field(label=label, default=default, required=required)
-        assert field.schema == {
-            'type': 'string',
-            'format': 'text',
-            'title': label,
-            'default': default
-        }
+        assert_dict_equal(
+            expected={
+                'type': 'string',
+                'format': 'text',
+                'title': label,
+                'default': default
+            },
+            actual=field.schema
+        )
 
     def test_load_data(self):
         test_data = "A test"
@@ -46,13 +50,16 @@ class TestCharField:
         default = "Thing"
         required = True
         field = CharField(label=label, default=default, required=required)
-        assert field.schema == {
-            'type': 'string',
-            'format': 'text',
-            'minLength': 1,
-            'title': label,
-            'default': default
-        }
+        assert_dict_equal(
+            expected={
+                'type': 'string',
+                'format': 'text',
+                'minLength': 1,
+                'title': label,
+                'default': default
+            },
+            actual=field.schema
+        )
 
     def test_schema_min_max_length(self):
         label = "Test Field"
@@ -67,14 +74,17 @@ class TestCharField:
             min_length=min_length,
             max_length=max_length
         )
-        assert field.schema == {
-            'type': 'string',
-            'format': 'text',
-            'minLength': min_length,
-            'maxLength': max_length,
-            'title': label,
-            'default': default
-        }
+        assert_dict_equal(
+            expected={
+                'type': 'string',
+                'format': 'text',
+                'minLength': min_length,
+                'maxLength': max_length,
+                'title': label,
+                'default': default
+            },
+            actual=field.schema
+        )
 
     def test_schema_choices(self):
         label = "Test Field"
@@ -87,24 +97,27 @@ class TestCharField:
             default=default,
             required=required
         )
-        assert field.schema == {
-            'type': 'string',
-            'format': 'text',
-            'minLength': 1,
-            'title': label,
-            'default': default,
-            'enum': ['cat', 'dog', 'fish'],
-            'enumSource': [
-                {
-                    'source': [
-                        {'value': choice_value, 'title': choice_label}
-                        for (choice_value, choice_label) in choices
-                    ],
-                    'title': '{{item.title}}',
-                    'value': '{{item.value}}'
-                }
-            ],
-        }
+        assert_dict_equal(
+            expected={
+                'type': 'string',
+                'format': 'text',
+                'minLength': 1,
+                'title': label,
+                'default': default,
+                'enum': ['cat', 'dog', 'fish'],
+                'enumSource': [
+                    {
+                        'source': [
+                            {'value': choice_value, 'title': choice_label}
+                            for (choice_value, choice_label) in choices
+                        ],
+                        'title': '{{item.title}}',
+                        'value': '{{item.value}}'
+                    }
+                ],
+            },
+            actual=field.schema
+        )
 
     def test_load_data(self):
         test_data = "A test"
@@ -116,20 +129,26 @@ class TestCharField:
 class TestTextField:
     def test_schema_basic(self):
         field = TextField()
-        assert field.schema == {'type': 'string', 'format': 'textarea'}
+        assert_dict_equal(
+            expected={'type': 'string', 'format': 'textarea'},
+            actual=field.schema
+        )
 
     def test_schema(self):
         label = "Test Field"
         default = "Thing"
         required = True
         field = TextField(label=label, default=default, required=required)
-        assert field.schema == {
-            'type': 'string',
-            'format': 'textarea',
-            'minLength': 1,
-            'title': label,
-            'default': default
-        }
+        assert_dict_equal(
+            expected={
+                'type': 'string',
+                'format': 'textarea',
+                'minLength': 1,
+                'title': label,
+                'default': default
+            },
+            actual=field.schema
+        )
 
     def test_load_data(self):
         test_data = "A test"
@@ -141,19 +160,25 @@ class TestTextField:
 class TestIntegerField:
     def test_schema_basic(self):
         field = IntegerField()
-        assert field.schema == {'type': 'integer', 'format': 'number'}
+        assert_dict_equal(
+            expected={'type': 'integer', 'format': 'number'},
+            actual=field.schema
+        )
 
     def test_schema(self):
         label = "Test Field"
         default = 5
         required = True
         field = IntegerField(label=label, default=default, required=required)
-        assert field.schema == {
-            'type': 'integer',
-            'format': 'number',
-            'title': label,
-            'default': default
-        }
+        assert_dict_equal(
+            expected={
+                'type': 'integer',
+                'format': 'number',
+                'title': label,
+                'default': default
+            },
+            actual=field.schema
+        )
 
     def test_load_data(self):
         test_data = 8
@@ -165,19 +190,25 @@ class TestIntegerField:
 class TestDecimalField:
     def test_schema_basic(self):
         field = DecimalField()
-        assert field.schema == {'type': 'decimal', 'format': 'number'}
+        assert_dict_equal(
+            expected={'type': 'decimal', 'format': 'number'},
+            actual=field.schema
+        )
 
     def test_schema(self):
         label = "Test Field"
         default = Decimal('5.5')
         required = True
         field = DecimalField(label=label, default=default, required=required)
-        assert field.schema == {
-            'type': 'decimal',
-            'format': 'number',
-            'title': label,
-            'default': default
-        }
+        assert_dict_equal(
+            expected={
+                'type': 'decimal',
+                'format': 'number',
+                'title': label,
+                'default': default
+            },
+            actual=field.schema
+        )
 
     def test_load_data(self):
         test_data = Decimal('3.14')
@@ -189,19 +220,25 @@ class TestDecimalField:
 class TestBooleanField:
     def test_schema_basic(self):
         field = BooleanField()
-        assert field.schema == {'type': 'boolean', 'format': 'checkbox'}
+        assert_dict_equal(
+            expected={'type': 'boolean', 'format': 'checkbox'},
+            actual=field.schema
+        )
 
     def test_schema(self):
         label = "Test Field"
         default = False
         required = True
         field = BooleanField(label=label, default=default, required=required)
-        assert field.schema == {
-            'type': 'boolean',
-            'format': 'checkbox',
-            'title': label,
-            'default': default
-        }
+        assert_dict_equal(
+            expected={
+                'type': 'boolean',
+                'format': 'checkbox',
+                'title': label,
+                'default': default
+            },
+            actual=field.schema
+        )
 
     def test_load_data(self):
         test_data = True
@@ -212,10 +249,16 @@ class TestBooleanField:
 
 class TestObjectField:
     def test_schema(self, dog_field, dog_schema):
-        assert dog_field().schema == dog_schema
+        assert_dict_equal(
+            expected=dog_schema,
+            actual=dog_field().schema
+        )
 
     def test_typed_schema(self, dog_field, typed_dog_schema):
-        assert dog_field().typed_schema == typed_dog_schema
+        assert_dict_equal(
+            expected=typed_dog_schema,
+            actual=dog_field().typed_schema
+        )
 
     def test_load_data(self, dog_field, scooby_doo):
         loaded_data = dog_field().Meta.python_type(scooby_doo)
@@ -223,7 +266,7 @@ class TestObjectField:
         assert loaded_data.breed == scooby_doo['breed']
 
     def test_nested_schema(self, person_field, person_schema):
-        assert person_field().schema == person_schema
+        assert_dict_equal(expected=person_schema, actual=person_field().schema)
 
     def test_load_nested_data(self, person_field, scooby_doo, shaggy):
         loaded_data = person_field().Meta.python_type(shaggy)
@@ -242,10 +285,16 @@ class TestObjectField:
 
 class TestSubClassedObjectField:
     def test_schema(self, parrot_field, parrot_schema):
-        assert parrot_field().schema == parrot_schema
+        assert_dict_equal(
+            expected=parrot_schema,
+            actual=parrot_field().schema
+        )
 
     def test_typed_schema(self, parrot_field, typed_parrot_schema):
-        assert parrot_field().typed_schema == typed_parrot_schema
+        assert_dict_equal(
+            expected=typed_parrot_schema,
+            actual=parrot_field().typed_schema
+        )
 
     def test_load_data(self, parrot_field):
         polly = {'name': 'Polly', 'talks': True}
@@ -265,12 +314,15 @@ class TestSubClassedObjectField:
 class TestArrayField:
     def test_schema(self, dog_field, dog_schema):
         dog_list_field = ArrayField(base_field=dog_field())
-        assert dog_list_field.schema == {
-            'type': 'array',
-            'format': 'table',
-            'title': 'Dog List',
-            'items': dog_schema
-        }
+        assert_dict_equal(
+            expected={
+                'type': 'array',
+                'format': 'table',
+                'title': 'Dog List',
+                'items': dog_schema
+            },
+            actual=dog_list_field.schema
+        )
 
     def test_load_data(self, dog_field, scooby_doo, snoopy):
         dog_list_field = ArrayField(base_field=dog_field())
@@ -305,19 +357,22 @@ class TestDynamicArrayField:
             min_items=min_items,
             max_items=max_items
         )
-        assert pet_field.schema == {
-            'type': 'array',
-            'format': 'tabs',
-            'title': schema_name.replace("_", " ").title(),
-            'uniqueItems': unique_items,
-            'minItems': min_items,
-            'maxItems': max_items,
-            'items': {
-                'headerTemplate': "{} {{{{i1}}}}.".format(item_label),
-                'oneOf': [typed_dog_schema, typed_fish_schema],
-                'title': item_label
-            }
-        }
+        assert_dict_equal(
+            expected={
+                'type': 'array',
+                'format': 'tabs',
+                'title': schema_name.replace("_", " ").title(),
+                'uniqueItems': unique_items,
+                'minItems': min_items,
+                'maxItems': max_items,
+                'items': {
+                    'headerTemplate': "{} {{{{i1}}}}.".format(item_label),
+                    'oneOf': [typed_dog_schema, typed_fish_schema],
+                    'title': item_label
+                }
+            },
+            actual=pet_field.schema
+        )
 
     def test_auto_generated_schema_name(
         self, dog_field, fish_field, typed_dog_schema, typed_fish_schema
