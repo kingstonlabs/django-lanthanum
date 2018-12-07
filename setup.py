@@ -24,7 +24,7 @@ install_requires = [
 
 setup(
     name='django-lanthanum',
-    version='0.1',
+    version='0.1.1',
     description='Dynamic JSON Schema Fields for Django Postgres Models',
     long_description=README,
     author='Kingston Labs',

@@ -33,7 +33,6 @@ class TypedArray(MutableSequence):
     An array with a specified type for each item
     """
     class Meta:
-        schema_type = 'array'
         base_type = str
 
     def __init__(self, data, **kwargs):
@@ -70,9 +69,6 @@ class DynamicArray(MutableSequence):
     """
     An array that includes items of different types
     """
-    class Meta:
-        schema_type = 'array'
-
     def __init__(self, data, **kwargs):
         """
         Initiate list as instance property

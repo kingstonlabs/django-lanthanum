@@ -268,6 +268,9 @@ class ObjectField(Field):
             key: field.Meta.python_type
             for key, field in new_class._sub_fields.items()
         })
+        # Make sure the schema name is available to the resulting type
+        python_type_dict['schema_name'] = schema_name
+
         python_type = type(
             "{}Type".format(cls.__name__.rstrip("Field")),
             (DynamicObject,),
@@ -343,7 +346,7 @@ class ArrayField(Field):
         array_type_meta = type(
             'Meta',
             (),
-            {'schema_type': 'array', 'base_type': base_field.Meta.python_type}
+            {'base_type': base_field.Meta.python_type}
         )
         python_type = type(
             "{}ArrayType".format(
