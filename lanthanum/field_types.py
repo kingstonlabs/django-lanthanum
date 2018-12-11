@@ -7,25 +7,19 @@ class DynamicObject(object):
     """
     A type for schema objects to subclass
     """
-    def __new__(cls, *args, **kwargs):
-        """
-        Configure the new object type with each of the sub-types specified
-        """
-        def get_sub_types():
-            sub_types = {}
-            for name, field_type in cls.__dict__.items():
-                sub_types[name] = field_type
-            return sub_types
-
-        new_class = super().__new__(cls)
-        new_class._sub_types = get_sub_types()
-        return new_class
+    @classmethod
+    def _get_sub_types(cls):
+        return {
+            name: field_type
+            for name, field_type in cls.__dict__.items()
+        }
 
     def __init__(self, data):
         self._data = data
+        sub_types = self._get_sub_types()
         for k, v in data.items():
-            if k in self._sub_types:
-                setattr(self, k, self._sub_types[k](v))
+            if k in sub_types:
+                setattr(self, k, sub_types[k](v))
 
 
 class TypedArray(MutableSequence):

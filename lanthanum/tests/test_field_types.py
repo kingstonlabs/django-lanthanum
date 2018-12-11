@@ -31,7 +31,6 @@ def person_type(dog_type):
 def dog_array_type(dog_type):
     class DogArrayType(TypedArray):
         class Meta:
-            schema_type = 'array'
             base_type = dog_type
     return DogArrayType
 
