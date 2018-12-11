@@ -3,7 +3,7 @@ import logging
 
 from .field_types import DynamicArray, DynamicObject, TypedArray
 from .schema_registry import schema_registry
-from .utils import field_to_schema_name
+from .utils import field_to_schema_name, strip_suffix
 
 
 logger = logging.getLogger(__name__)
@@ -272,7 +272,7 @@ class ObjectField(Field):
         python_type_dict['schema_name'] = schema_name
 
         python_type = type(
-            "{}Type".format(cls.__name__.rstrip("Field")),
+            "{}Type".format(strip_suffix(cls.__name__, "Field")),
             (DynamicObject,),
             python_type_dict
         )
@@ -323,7 +323,7 @@ class ArrayField(Field):
 
         @classmethod
         def get_default_label(cls):
-            simple_label = cls.schema_name.rstrip("_array")
+            simple_label = strip_suffix(cls.schema_name, "_array")
             return "{} List".format(simple_label.replace("_", " ").title())
 
     def __new__(cls, *args, **kwargs):
@@ -350,7 +350,7 @@ class ArrayField(Field):
         )
         python_type = type(
             "{}ArrayType".format(
-                base_field.__class__.__name__.rstrip("Field")
+                strip_suffix(base_field.__class__.__name__, "Field")
             ),
             (TypedArray,),
             {'Meta': array_type_meta}

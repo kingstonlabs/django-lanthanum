@@ -9,13 +9,17 @@ def camel_to_underscore(string_in):
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
+def strip_suffix(string_in, suffix):
+    """
+    Strip a suffix from a string
+    """
+    if string_in.endswith(suffix):
+        return string_in[:-len(suffix)]
+    return string_in
+
+
 def field_to_schema_name(field_name):
     """
-    Convert a field class name to a schema name
-
-    This strips off the Field suffix and converts camelcase to underscores.
+    Convert a field class name to a schema name and remove the Field suffix
     """
-    if field_name.endswith("Field"):
-        field_suffix_length = 5                 # = len("Field")
-        field_name = field_name[:-field_suffix_length]
-    return camel_to_underscore(field_name)
+    return camel_to_underscore(strip_suffix(field_name, "Field"))
