@@ -147,6 +147,9 @@ def fish_field():
     class FishField(ObjectField):
         name = CharField(required=True)
         salt_water = BooleanField(default=False)
+        ocean = CharField(
+            choices=[('pacific', 'Pacific'), ('atlantic', 'Atlantic')]
+        )
     return FishField
 
 
@@ -167,10 +170,36 @@ def fish_schema():
                 'type': 'boolean',
                 'format': 'checkbox',
                 'default': False
+            },
+            'ocean': {
+                'title': 'Ocean',
+                'type': 'string',
+                'format': 'text',
+                'enum': ['pacific', 'atlantic']
             }
         },
         'required': ['name']
     }
+
+
+@pytest.fixture
+def fish_editor_schema(fish_schema):
+    fish_schema['properties']['ocean'] = {
+        'title': 'Ocean',
+        'type': 'string',
+        'format': 'text',
+        'enumSource': [
+            {
+                'source': [
+                    {'value': 'pacific', 'title': 'Pacific'},
+                    {'value': 'atlantic', 'title': 'Atlantic'},
+                ],
+                'title': '{{item.title}}',
+                'value': '{{item.value}}'
+            }
+        ]
+    }
+    return fish_schema
 
 
 @pytest.fixture
@@ -192,6 +221,12 @@ def typed_fish_schema(fish_schema):
         "defaultProperties": ["data", "schemaName"],
         "required": ['data', 'schemaName']
     }
+
+
+@pytest.fixture
+def typed_fish_editor_schema(typed_fish_schema, fish_editor_schema):
+    typed_fish_schema['properties']['data'] = fish_editor_schema
+    return typed_fish_schema
 
 
 @pytest.fixture
