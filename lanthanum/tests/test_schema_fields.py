@@ -402,6 +402,40 @@ class TestDynamicArrayField:
             actual=pet_field.schema
         )
 
+    def test_editor_schema(
+        self, dog_field, fish_field, typed_dog_schema, typed_fish_editor_schema
+    ):
+        item_label = "Pet"
+        schema_name = "pet_list"
+        unique_items = True
+        min_items = 2
+        max_items = 5
+
+        pet_field = DynamicArrayField(
+            schema_name=schema_name,
+            item_label=item_label,
+            allowed_fields=[dog_field(), fish_field()],
+            unique_items=unique_items,
+            min_items=min_items,
+            max_items=max_items
+        )
+        assert_dict_equal(
+            expected={
+                'type': 'array',
+                'format': 'tabs',
+                'title': schema_name.replace("_", " ").title(),
+                'uniqueItems': unique_items,
+                'minItems': min_items,
+                'maxItems': max_items,
+                'items': {
+                    'headerTemplate': "{} {{{{i1}}}}.".format(item_label),
+                    'oneOf': [typed_dog_schema, typed_fish_editor_schema],
+                    'title': item_label
+                }
+            },
+            actual=pet_field.editor_schema
+        )
+
     def test_auto_generated_schema_name(
         self, dog_field, fish_field, typed_dog_schema, typed_fish_schema
     ):

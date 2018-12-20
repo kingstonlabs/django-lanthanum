@@ -114,6 +114,15 @@ class Field(object):
         """
         return self.schema
 
+    @property
+    def typed_editor_schema(self):
+        """
+        The typed schema prepared for json editor
+        """
+        schema = self.typed_schema
+        schema['properties']['data'] = self.editor_schema
+        return schema
+
 
 class CharField(Field):
     """
@@ -415,6 +424,15 @@ class ArrayField(Field):
         schema['items'] = self._base_field.schema
         return schema
 
+    @property
+    def editor_schema(self):
+        """
+        Build the editor schema by iterating over each of the sub fields.
+        """
+        schema = super().editor_schema
+        schema['items'] = self._base_field.editor_schema
+        return schema
+
 
 class DynamicArrayField(Field):
     """
@@ -495,4 +513,12 @@ class DynamicArrayField(Field):
             schema['minItems'] = self._min_items
         if self._max_items is not None:
             schema['maxItems'] = self._max_items
+        return schema
+
+    @property
+    def editor_schema(self):
+        schema = self.schema
+        schema['items']['oneOf'] = [
+            field.typed_editor_schema for field in self._allowed_fields
+        ]
         return schema
