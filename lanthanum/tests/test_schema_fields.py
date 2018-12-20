@@ -290,6 +290,12 @@ class TestObjectField:
     def test_nested_schema(self, person_field, person_schema):
         assert_dict_equal(expected=person_schema, actual=person_field().schema)
 
+    def test_nested_editor_schema(self, person_field, person_editor_schema):
+        assert_dict_equal(
+            expected=person_editor_schema,
+            actual=person_field().editor_schema
+        )
+
     def test_load_nested_data(self, person_field, scooby_doo, shaggy):
         loaded_data = person_field().Meta.python_type(shaggy)
         assert loaded_data.name == shaggy['name']
