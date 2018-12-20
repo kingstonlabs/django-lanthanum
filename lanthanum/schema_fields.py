@@ -170,6 +170,7 @@ class CharField(Field):
                 }
             ]
             del schema['enum']
+
         return schema
 
 
@@ -322,6 +323,20 @@ class ObjectField(Field):
         schema['properties'] = {}
         for name, sub_field in self._sub_fields.items():
             sub_field_schema = sub_field.schema.copy()
+            sub_field_schema['title'] = name.title().replace("_", " ")
+            schema['properties'][name] = sub_field_schema
+        schema['required'] = self._required_field_names
+        return schema
+
+    @property
+    def editor_schema(self):
+        """
+        Build the editor schema by iterating over each of the sub fields.
+        """
+        schema = super().editor_schema
+        schema['properties'] = {}
+        for name, sub_field in self._sub_fields.items():
+            sub_field_schema = sub_field.editor_schema.copy()
             sub_field_schema['title'] = name.title().replace("_", " ")
             schema['properties'][name] = sub_field_schema
         schema['required'] = self._required_field_names

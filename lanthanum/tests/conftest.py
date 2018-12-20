@@ -86,6 +86,13 @@ def person_field(dog_field):
     class PersonField(ObjectField):
         name = CharField(required=True)
         favourite_dog = dog_field()
+        favourite_colour = CharField(
+            choices=(
+                ('red', 'Red'),
+                ('green', 'Green'),
+                ('blue', 'Blue')
+            )
+        )
     return PersonField
 
 
@@ -102,10 +109,37 @@ def person_schema(dog_schema):
                 'format': 'text',
                 'minLength': 1
             },
+            'favourite_colour': {
+                'title': 'Favourite Colour',
+                'type': 'string',
+                'format': 'text',
+                'enum': ['red', 'blue', 'green']
+            },
             'favourite_dog': dog_schema
         },
         'required': ['name']
     }
+
+
+@pytest.fixture
+def person_editor_schema(person_schema):
+    person_schema['properties']['favourite_colour'] = {
+        'title': 'Favourite Colour',
+        'type': 'string',
+        'format': 'text',
+        'enumSource': [
+            {
+                'source': [
+                    {'value': 'red', 'title': 'Red'},
+                    {'value': 'green', 'title': 'Green'},
+                    {'value': 'blue', 'title': 'Blue'},
+                ],
+                'title': '{{item.title}}',
+                'value': '{{item.value}}'
+            }
+        ]
+    }
+    return person_schema
 
 
 @pytest.fixture
