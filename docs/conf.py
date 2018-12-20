@@ -30,7 +30,7 @@ copyright = '2018, Kingston Labs'
 author = 'Kingston Labs'
 
 version = '0.1'
-release = '0.1.3'
+release = '0.1.4'
 
 language = 'en'
 
