@@ -42,7 +42,7 @@ class DynamicField(JSONField):
         Provide a JSON Editor Widget to work with the data.
         """
         widget = JSONEditorWidget(
-            self.schema_field.schema,
+            self.schema_field.editor_schema,
             collapsed=False
         )
         defaults = {'form_class': JSONFormField, 'widget': widget}

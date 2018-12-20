@@ -107,6 +107,13 @@ class Field(object):
             schema['title'] = self._label
         return schema
 
+    @property
+    def editor_schema(self):
+        """
+        The schema prepared for json editor
+        """
+        return self.schema
+
 
 class CharField(Field):
     """
@@ -135,6 +142,23 @@ class CharField(Field):
         """
         schema = super().schema
         if self._choices:
+            schema['enum'] = [value for (value, label) in self._choices]
+        if self._required and self._min_length is None:
+            schema['minLength'] = 1
+        if self._min_length:
+            schema['minLength'] = self._min_length
+        if self._max_length:
+            schema['maxLength'] = self._max_length
+        return schema
+
+    @property
+    def editor_schema(self):
+        """
+        Prettify choice options
+        """
+        schema = self.schema
+        if self._choices:
+            # Add enum source  and delete enum for nice labels on each option
             schema['enumSource'] = [
                 {
                     'source': [
@@ -145,13 +169,7 @@ class CharField(Field):
                     'value': '{{item.value}}'
                 }
             ]
-            schema['enum'] = [value for (value, label) in self._choices]
-        if self._required and self._min_length is None:
-            schema['minLength'] = 1
-        if self._min_length:
-            schema['minLength'] = self._min_length
-        if self._max_length:
-            schema['maxLength'] = self._max_length
+            del schema['enum']
         return schema
 
 

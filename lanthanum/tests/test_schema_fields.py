@@ -104,7 +104,29 @@ class TestCharField:
                 'minLength': 1,
                 'title': label,
                 'default': default,
-                'enum': ['cat', 'dog', 'fish'],
+                'enum': ['cat', 'dog', 'fish']
+            },
+            actual=field.schema
+        )
+
+    def test_editor_schema_choices(self):
+        label = "Test Field"
+        default = "cat"
+        choices = [('cat', 'Cat'), ('dog', 'Dog'), ('fish', 'Fish')]
+        required = True
+        field = CharField(
+            label=label,
+            choices=choices,
+            default=default,
+            required=required
+        )
+        assert_dict_equal(
+            expected={
+                'type': 'string',
+                'format': 'text',
+                'minLength': 1,
+                'title': label,
+                'default': default,
                 'enumSource': [
                     {
                         'source': [
@@ -116,7 +138,7 @@ class TestCharField:
                     }
                 ],
             },
-            actual=field.schema
+            actual=field.editor_schema
         )
 
     def test_load_data(self):
